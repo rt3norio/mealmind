@@ -54,6 +54,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const [d, s] = await Promise.all([loadDoc(), loadSettings()]);
       setDoc(d);
       setSettings(s);
+
+      // Restore the Drive session without making the user click again.
+      const cid = s.driveClientId || BUILTIN_CLIENT_ID;
+      drive.restoreToken(s.driveToken, s.driveTokenExp);
+      if (drive.isSignedIn()) {
+        setSignedIn(true);
+      } else if (s.driveConnected && cid) {
+        // Cached token expired — try a silent refresh (no popup).
+        const ok = await drive.trySilentSignIn(cid);
+        if (ok) {
+          setSignedIn(true);
+          const { token, expiresAt } = drive.tokenState();
+          setSettings(await saveSettings({ driveToken: token ?? undefined, driveTokenExp: expiresAt }));
+        }
+      }
     })();
   }, []);
 
@@ -129,6 +144,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try {
       await drive.signIn(effectiveClientId);
       setSignedIn(true);
+      const { token, expiresAt } = drive.tokenState();
+      await updateSettings({ driveConnected: true, driveToken: token ?? undefined, driveTokenExp: expiresAt });
       setStatus('Conectado ao Google Drive.');
     } catch (e) {
       setStatus(errMsg(e));
@@ -192,6 +209,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   function driveDisconnect() {
     drive.signOut();
     setSignedIn(false);
+    void updateSettings({ driveConnected: false, driveToken: undefined, driveTokenExp: undefined });
     setStatus('Desconectado do Google Drive.');
   }
 

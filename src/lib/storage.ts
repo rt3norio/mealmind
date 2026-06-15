@@ -23,6 +23,12 @@ export interface Settings {
   lastSyncedAt?: string;
   /** Whether to auto-sync to Drive after each local change. */
   autoSync?: boolean;
+  /** Whether the user has connected Drive at least once (drives silent re-auth on boot). */
+  driveConnected?: boolean;
+  /** Cached OAuth access token, reused across reloads until it expires. */
+  driveToken?: string;
+  /** Epoch ms when the cached token expires. */
+  driveTokenExp?: number;
 }
 
 let dbp: Promise<IDBPDatabase> | null = null;

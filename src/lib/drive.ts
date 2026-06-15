@@ -27,7 +27,8 @@ declare global {
           initTokenClient: (cfg: {
             client_id: string;
             scope: string;
-            callback: (resp: { access_token?: string; error?: string }) => void;
+            callback: (resp: { access_token?: string; expires_in?: number; error?: string }) => void;
+            error_callback?: (err: { type?: string }) => void;
           }) => TokenClient;
           revoke: (token: string, done?: () => void) => void;
         };
@@ -59,31 +60,60 @@ export function isSignedIn(): boolean {
   return !!accessToken && Date.now() < tokenExpiresAt;
 }
 
+/** Restore a previously cached token (from storage) so reloads don't re-prompt. */
+export function restoreToken(token: string | undefined, expiresAt: number | undefined): void {
+  if (token && expiresAt && Date.now() < expiresAt) {
+    accessToken = token;
+    tokenExpiresAt = expiresAt;
+  }
+}
+
+/** Current token + expiry, for the caller to persist across reloads. */
+export function tokenState(): { token: string | null; expiresAt: number } {
+  return { token: accessToken, expiresAt: tokenExpiresAt };
+}
+
+// Request a token via GIS. `prompt: 'none'` is silent (no UI) — fails via
+// error_callback if Google needs interaction. Resolves true on success.
+function requestToken(clientId: string, prompt: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    void loadGis().then(() => {
+      const oauth2 = window.google!.accounts.oauth2;
+      const client = oauth2.initTokenClient({
+        client_id: clientId,
+        scope: SCOPE,
+        callback: (resp) => {
+          if (resp.error || !resp.access_token) {
+            resolve(false);
+            return;
+          }
+          accessToken = resp.access_token;
+          // Honor the server-provided lifetime; refresh ~5 min early.
+          const ttl = (resp.expires_in ?? 3600) * 1000 - 5 * 60 * 1000;
+          tokenExpiresAt = Date.now() + Math.max(ttl, 60 * 1000);
+          resolve(true);
+        },
+        error_callback: () => resolve(false),
+      });
+      client.requestAccessToken({ prompt });
+    }).catch(() => resolve(false));
+  });
+}
+
 /**
  * Interactively obtain an access token. Opens Google's popup. Must be called
  * from a user gesture (e.g. a button click) or the popup may be blocked.
  */
 export async function signIn(clientId: string): Promise<void> {
   if (!clientId) throw new Error('Configure o Client ID do Google em Configurações antes de conectar.');
-  await loadGis();
-  const oauth2 = window.google!.accounts.oauth2;
-  await new Promise<void>((resolve, reject) => {
-    const client = oauth2.initTokenClient({
-      client_id: clientId,
-      scope: SCOPE,
-      callback: (resp) => {
-        if (resp.error || !resp.access_token) {
-          reject(new Error(`Falha ao autenticar no Google: ${resp.error ?? 'sem token'}.`));
-          return;
-        }
-        accessToken = resp.access_token;
-        // GIS tokens last ~1h; refresh 5 min early to be safe.
-        tokenExpiresAt = Date.now() + 55 * 60 * 1000;
-        resolve();
-      },
-    });
-    client.requestAccessToken({ prompt: '' });
-  });
+  const ok = await requestToken(clientId, '');
+  if (!ok) throw new Error('Falha ao autenticar no Google. Tente novamente.');
+}
+
+/** Try to refresh the token without any popup. Returns false if interaction is needed. */
+export async function trySilentSignIn(clientId: string): Promise<boolean> {
+  if (!clientId) return false;
+  return requestToken(clientId, 'none');
 }
 
 export function signOut(): void {
