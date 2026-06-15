@@ -1,7 +1,7 @@
-# app-nutrition — servidor MCP
+# MealMind — servidor MCP
 
 Servidor [MCP](https://modelcontextprotocol.io) que deixa uma IA **gerar e
-validar** o JSON de prescrição do [app-nutrition](https://rt3norio.github.io/app-nutrition/)
+validar** o JSON de prescrição do [MealMind](https://rt3norio.github.io/mealmind/)
 sozinha. Reusa exatamente o mesmo schema e validador do app (importados de
 `../src`), então nada de lógica é duplicado.
 
@@ -43,9 +43,9 @@ Ex. Claude Desktop (`claude_desktop_config.json`) ou qualquer cliente por stdio:
 ```json
 {
   "mcpServers": {
-    "app-nutrition": {
+    "mealmind": {
       "command": "npx",
-      "args": ["-y", "tsx", "/CAMINHO/ABSOLUTO/app-nutrition/mcp/server.ts"]
+      "args": ["-y", "tsx", "/CAMINHO/ABSOLUTO/mealmind/mcp/server.ts"]
     }
   }
 }

@@ -1,4 +1,4 @@
-// Data model for app-nutrition.
+// Data model for MealMind.
 //
 // One JSON document holds the whole app state: the nutritionist's prescription
 // (the "plan") and the user's tracking logs. The file is portable — exported,

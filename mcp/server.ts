@@ -1,5 +1,5 @@
 #!/usr/bin/env -S npx -y tsx
-// MCP server for app-nutrition.
+// MCP server for MealMind.
 //
 // Exposes the SAME schema text and validator the web app uses (imported directly
 // from ../src — no logic is duplicated here), so an AI assistant can generate a
@@ -14,14 +14,14 @@ import { z } from 'zod';
 import { LLM_PROMPT, SAMPLE_JSON } from '../src/data/schemaDoc';
 import { parseAndValidate, type ValidationIssue } from '../src/data/validator';
 
-const server = new McpServer({ name: 'app-nutrition', version: '1.0.0' });
+const server = new McpServer({ name: 'mealmind', version: '1.0.0' });
 
 const text = (t: string) => ({ content: [{ type: 'text' as const, text: t }] });
 
 server.tool(
   'get_schema',
   'Retorna a especificação completa (LLM-ready) do JSON de prescrição do ' +
-    'app-nutrition: regras do formato, unidades válidas e um exemplo completo. ' +
+    'MealMind: regras do formato, unidades válidas e um exemplo completo. ' +
     'Chame isto antes de gerar um plano.',
   async () => text(LLM_PROMPT),
 );
@@ -43,7 +43,7 @@ function formatIssues(label: string, issues: ValidationIssue[]): string {
 
 server.tool(
   'validate_plan',
-  'Valida um JSON de prescrição contra o schema do app-nutrition (mesmo ' +
+  'Valida um JSON de prescrição contra o schema do MealMind (mesmo ' +
     'validador da aba Dados). Use repetidamente até "valid": true antes de ' +
     'entregar o JSON ao usuário.',
   { json: z.string().describe('O conteúdo JSON do plano a validar.') },

@@ -6,9 +6,9 @@ const SAMPLE_JSON = JSON.stringify(SAMPLE_DOC, null, 2);
 /**
  * A self-contained, LLM-ready prompt. A nutritionist can paste this whole text
  * into ChatGPT/Claude/Gemini, describe the patient's plan in plain language, and
- * get back a file that imports cleanly into app-nutrition.
+ * get back a file that imports cleanly into MealMind.
  */
-export const LLM_PROMPT = `Você é um assistente que gera o arquivo JSON de prescrição do app "app-nutrition".
+export const LLM_PROMPT = `Você é um assistente que gera o arquivo JSON de prescrição do app "MealMind".
 Gere SOMENTE o JSON final, sem comentários e sem texto antes ou depois.
 
 REGRAS DO FORMATO

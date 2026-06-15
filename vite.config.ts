@@ -2,8 +2,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// Served from https://rt3norio.github.io/app-nutrition/
-const BASE = '/app-nutrition/';
+// Served from https://rt3norio.github.io/mealmind/
+const BASE = '/mealmind/';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -14,8 +14,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Nutrição — Plano Alimentar',
-        short_name: 'Nutrição',
+        name: 'MealMind — Plano Alimentar',
+        short_name: 'MealMind',
         description:
           'Acompanhe o que comer, quando e quanto. Aberto, gratuito e sem servidor — seus dados ficam no seu Google Drive.',
         lang: 'pt-BR',

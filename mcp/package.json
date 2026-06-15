@@ -1,9 +1,9 @@
 {
-  "name": "app-nutrition-mcp",
+  "name": "mealmind-mcp",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "MCP server to generate and validate app-nutrition diet-plan JSON.",
+  "description": "MCP server to generate and validate MealMind diet-plan JSON.",
   "scripts": {
     "start": "tsx server.ts",
     "smoke": "tsx smoke.ts"

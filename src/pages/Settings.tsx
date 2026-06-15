@@ -70,7 +70,7 @@ export default function Settings() {
       <div className="card">
         <h2>Sobre</h2>
         <p className="sub">
-          app-nutrition — aberto, gratuito e sem backend. Funciona offline (PWA): adicione
+          MealMind — aberto, gratuito e sem backend. Funciona offline (PWA): adicione
           à tela inicial pelo menu do navegador.
         </p>
         <button className="ghost sm" onClick={() => setShowAdvanced((v) => !v)}>

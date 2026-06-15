@@ -1,4 +1,4 @@
-# Formato da prescrição (JSON) — app-nutrition
+# Formato da prescrição (JSON) — MealMind
 
 Este documento descreve, em linguagem simples, o arquivo JSON que o app importa.
 Ele foi escrito para que **um nutricionista** consiga gerá-lo — à mão ou pedindo a

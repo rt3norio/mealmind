@@ -12,7 +12,7 @@ function Shell() {
     <div className="app">
       <header className="topbar">
         <span className="logo" aria-hidden>🥗</span>
-        <h1>Nutrição</h1>
+        <h1>MealMind</h1>
         <span className="spacer" />
         <span className="sync-dot">
           {effectiveClientId ? (signedIn ? '● Drive' : '○ Drive') : ''}
