@@ -28,6 +28,8 @@ interface StoreValue {
   logMeal: (mealId: string, status: MealLog['status'], date?: string) => void;
   clearMealLog: (mealId: string, date?: string) => void;
   addMeasurement: (m: Measurement) => void;
+  /** Add (or subtract) water in ml to the day's running total. Clamps at 0. */
+  addWater: (ml: number, date?: string) => void;
   importText: (text: string) => ValidationResult;
   replaceDoc: (doc: NutritionDoc) => void;
   updateSettings: (patch: Partial<Settings>) => Promise<void>;
@@ -108,6 +110,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!doc) return;
     const measurements = doc.logs.measurements.filter((x) => x.date !== m.date);
     measurements.push(m);
+    measurements.sort((a, b) => a.date.localeCompare(b.date));
+    commit({ ...doc, logs: { ...doc.logs, measurements } });
+  }
+
+  function addWater(ml: number, date = todayKey()) {
+    if (!doc) return;
+    const existing = doc.logs.measurements.find((m) => m.date === date);
+    const water = Math.max(0, (existing?.water_ml ?? 0) + ml);
+    const rest = doc.logs.measurements.filter((m) => m.date !== date);
+    // Drop an otherwise-empty measurement when water returns to zero.
+    const stillMeaningful = water > 0 || existing?.weight_kg != null || !!existing?.notes;
+    const measurements = stillMeaningful
+      ? [...rest, { ...(existing ?? { date }), date, water_ml: water }]
+      : rest;
     measurements.sort((a, b) => a.date.localeCompare(b.date));
     commit({ ...doc, logs: { ...doc.logs, measurements } });
   }
@@ -232,6 +248,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     logMeal,
     clearMealLog,
     addMeasurement,
+    addWater,
     importText,
     replaceDoc,
     updateSettings,

@@ -76,6 +76,11 @@ export function consumedTotals(doc: NutritionDoc, date: string): MacroTotals {
   }, { ...ZERO });
 }
 
+/** Water (ml) logged on `date`, summed from the day's measurement. */
+export function waterForDate(doc: NutritionDoc, date: string): number {
+  return doc.logs.measurements.find((m) => m.date === date)?.water_ml ?? 0;
+}
+
 export function goalsAsTotals(goals?: Goals): MacroTotals {
   return {
     calories: goals?.calories ?? 0,

@@ -1,6 +1,7 @@
 import { useStore } from '../store';
 import MealCard from '../components/MealCard';
 import Totals from '../components/Totals';
+import WaterCard from '../components/WaterCard';
 import {
   consumedTotals,
   goalsAsTotals,
@@ -42,6 +43,8 @@ export default function Today() {
         <p className="sub">Marque cada refeição conforme o dia avança.</p>
         <Totals consumed={consumed} goals={goals} />
       </div>
+
+      <WaterCard />
 
       {meals.map((m) => (
         <MealCard
