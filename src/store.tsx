@@ -7,7 +7,7 @@ import {
 } from 'react';
 import type { ExtraEntry, MealLog, Measurement, NutritionDoc } from './data/types';
 import { parseAndValidate, type ValidationResult } from './data/validator';
-import { todayKey } from './data/nutrition';
+import { todayKey, withExtra, withMealLog, withWater } from './data/nutrition';
 import {
   loadDoc,
   saveDoc,
@@ -131,12 +131,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     option?: number,
   ) {
     if (!doc) return;
-    const meals = doc.logs.meals.filter((l) => !(l.date === date && l.mealId === mealId));
-    const entry: MealLog = { date, mealId, status: st, loggedAt: new Date().toISOString() };
-    if (option) entry.option = option;
-    if (st === 'partial' && portions) entry.portions = portions;
-    meals.push(entry);
-    commit({ ...doc, logs: { ...doc.logs, meals } });
+    commit(withMealLog(doc, mealId, st, date, new Date().toISOString(), portions, option));
   }
 
   function clearMealLog(mealId: string, date = todayKey()) {
@@ -155,16 +150,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   function addWater(ml: number, date = todayKey()) {
     if (!doc) return;
-    const existing = doc.logs.measurements.find((m) => m.date === date);
-    const water = Math.max(0, (existing?.water_ml ?? 0) + ml);
-    const rest = doc.logs.measurements.filter((m) => m.date !== date);
-    // Drop an otherwise-empty measurement when water returns to zero.
-    const stillMeaningful = water > 0 || existing?.weight_kg != null || !!existing?.notes;
-    const measurements = stillMeaningful
-      ? [...rest, { ...(existing ?? { date }), date, water_ml: water }]
-      : rest;
-    measurements.sort((a, b) => a.date.localeCompare(b.date));
-    commit({ ...doc, logs: { ...doc.logs, measurements } });
+    commit(withWater(doc, ml, date));
   }
 
   function addExtra(e: Omit<ExtraEntry, 'id' | 'date' | 'loggedAt'>) {
@@ -176,8 +162,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       date: todayKey(now),
       loggedAt: now.toISOString(),
     };
-    const extras = [...(doc.logs.extras ?? []), entry];
-    commit({ ...doc, logs: { ...doc.logs, extras } });
+    commit(withExtra(doc, entry));
   }
 
   function removeExtra(id: string) {

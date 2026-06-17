@@ -13,8 +13,12 @@ const KEYS_URL = 'https://openrouter.ai/api/v1/auth/keys';
 const CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const VERIFIER_KEY = 'mealmind.openrouter.verifier';
 
-/** Cheap, capable default. The user can override it in Settings. */
-export const DEFAULT_MODEL = 'anthropic/claude-haiku-4.5';
+/**
+ * Default model: stronger than Claude Haiku 4.5 yet far cheaper (~$0.23/$0.34
+ * per 1M vs $1/$5), with reliable tool-calling — which the agentic coach needs.
+ * Override in Settings (e.g. a `:free` model for zero cost).
+ */
+export const DEFAULT_MODEL = 'deepseek/deepseek-v3.2';
 
 function b64url(bytes: Uint8Array): string {
   let s = '';
@@ -82,8 +86,31 @@ export interface ChatMsg {
   content: string;
 }
 
-/** Send a chat completion. Billed to the user's OpenRouter balance. */
-export async function chat(key: string, model: string, messages: ChatMsg[]): Promise<string> {
+export interface ToolCall {
+  id: string;
+  type?: 'function';
+  function: { name: string; arguments: string };
+}
+
+export interface AssistantMessage {
+  role: 'assistant';
+  content: string | null;
+  tool_calls?: ToolCall[];
+}
+
+/** Any message that can go in the conversation array (OpenAI-compatible). */
+export type AnyMessage =
+  | ChatMsg
+  | AssistantMessage
+  | { role: 'tool'; tool_call_id: string; content: string };
+
+/** One completion turn. Returns the raw assistant message (may carry tool_calls). */
+export async function complete(
+  key: string,
+  model: string,
+  messages: AnyMessage[],
+  tools?: unknown[],
+): Promise<AssistantMessage> {
   const res = await fetch(CHAT_URL, {
     method: 'POST',
     headers: {
@@ -92,12 +119,18 @@ export async function chat(key: string, model: string, messages: ChatMsg[]): Pro
       'HTTP-Referer': callbackUrl(),
       'X-Title': 'MealMind',
     },
-    body: JSON.stringify({ model, messages }),
+    body: JSON.stringify(tools && tools.length ? { model, messages, tools } : { model, messages }),
   });
   if (!res.ok) {
     const t = await res.text().catch(() => '');
     throw new Error(`Erro no chat (${res.status}). ${t.slice(0, 200)}`);
   }
-  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-  return data.choices?.[0]?.message?.content ?? '';
+  const data = (await res.json()) as { choices?: { message?: AssistantMessage }[] };
+  return data.choices?.[0]?.message ?? { role: 'assistant', content: '' };
+}
+
+/** Convenience: single-shot text completion (no tools). */
+export async function chat(key: string, model: string, messages: ChatMsg[]): Promise<string> {
+  const msg = await complete(key, model, messages);
+  return msg.content ?? '';
 }

@@ -146,6 +146,42 @@ export function round(n: number): number {
   return Math.round(n);
 }
 
+// --- Pure log reducers (shared by the store and the agentic coach) -----------
+
+/** Return a new doc with a meal logged (replaces any existing log that day). */
+export function withMealLog(
+  doc: NutritionDoc,
+  mealId: string,
+  status: MealLog['status'],
+  date: string,
+  loggedAt: string,
+  portions?: number[],
+  option?: number,
+): NutritionDoc {
+  const meals = doc.logs.meals.filter((l) => !(l.date === date && l.mealId === mealId));
+  const entry: MealLog = { date, mealId, status, loggedAt };
+  if (option) entry.option = option;
+  if (status === 'partial' && portions) entry.portions = portions;
+  meals.push(entry);
+  return { ...doc, logs: { ...doc.logs, meals } };
+}
+
+/** Return a new doc with `ml` added to the day's water (clamped at 0). */
+export function withWater(doc: NutritionDoc, ml: number, date: string): NutritionDoc {
+  const existing = doc.logs.measurements.find((m) => m.date === date);
+  const water = Math.max(0, (existing?.water_ml ?? 0) + ml);
+  const rest = doc.logs.measurements.filter((m) => m.date !== date);
+  const keep = water > 0 || existing?.weight_kg != null || !!existing?.notes;
+  const measurements = keep ? [...rest, { ...(existing ?? { date }), date, water_ml: water }] : rest;
+  measurements.sort((a, b) => a.date.localeCompare(b.date));
+  return { ...doc, logs: { ...doc.logs, measurements } };
+}
+
+/** Return a new doc with an ad-hoc extra appended. */
+export function withExtra(doc: NutritionDoc, entry: ExtraEntry): NutritionDoc {
+  return { ...doc, logs: { ...doc.logs, extras: [...(doc.logs.extras ?? []), entry] } };
+}
+
 /** Aggregated metrics for a single tracked day. */
 export interface DaySummary {
   date: string;
