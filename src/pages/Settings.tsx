@@ -3,6 +3,15 @@ import { useStore } from '../store';
 import { BUILTIN_CLIENT_ID } from '../lib/config';
 import { DEFAULT_MODEL } from '../lib/openrouter';
 
+/** Curated coach models (value '' = the app default). */
+const COACH_MODELS: { id: string; label: string }[] = [
+  { id: 'qwen/qwen3-235b-a22b-2507', label: 'Qwen3 235B — mais barato' },
+  { id: 'deepseek/deepseek-v4-flash', label: 'DeepSeek V4 Flash — barato, 1M ctx' },
+  { id: 'google/gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite — tools confiáveis' },
+  { id: 'anthropic/claude-haiku-4.5', label: 'Claude Haiku 4.5' },
+  { id: 'anthropic/claude-sonnet-4.5', label: 'Claude Sonnet 4.5 — premium' },
+];
+
 export default function Settings() {
   const {
     settings,
@@ -84,6 +93,24 @@ export default function Settings() {
         ) : (
           <>
             <div className="banner ok">Conectado ao OpenRouter. A aba 💬 Coach está liberada.</div>
+            <label className="field" style={{ margin: '6px 0 12px' }}>
+              <span className="lbl">Modelo do coach</span>
+              <select
+                value={settings.openrouterModel ?? ''}
+                onChange={(e) => updateSettings({ openrouterModel: e.target.value || undefined })}
+              >
+                <option value="">DeepSeek V3.2 — padrão (barato + forte)</option>
+                {COACH_MODELS.map((m) => (
+                  <option key={m.id} value={m.id}>{m.label}</option>
+                ))}
+                {settings.openrouterModel &&
+                  !COACH_MODELS.some((m) => m.id === settings.openrouterModel) && (
+                    <option value={settings.openrouterModel}>
+                      Personalizado: {settings.openrouterModel}
+                    </option>
+                  )}
+              </select>
+            </label>
             <button className="ghost sm" onClick={orDisconnect}>Desconectar</button>
           </>
         )}

@@ -135,15 +135,8 @@ const numOpt = (x: unknown) => {
   return Number.isFinite(n) && n > 0 ? n : undefined;
 };
 
-interface Turn {
-  role: 'user' | 'assistant';
-  content: string;
-  actions?: string[];
-}
-
 export default function Coach() {
-  const { doc, settings, replaceDoc } = useStore();
-  const [turns, setTurns] = useState<Turn[]>([]);
+  const { doc, settings, replaceDoc, coachTurns: turns, setCoachTurns: setTurns } = useStore();
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -268,7 +261,14 @@ export default function Coach() {
   return (
     <div className="coach">
       <div className="card" style={{ marginBottom: 10 }}>
-        <h2>💬 Coach</h2>
+        <div className="meal-head">
+          <h2 style={{ flex: 1 }}>💬 Coach</h2>
+          {turns.length > 0 && (
+            <button className="ghost sm" onClick={() => setTurns([])} disabled={busy}>
+              Limpar
+            </button>
+          )}
+        </div>
         <p className="sub" style={{ marginBottom: 0 }}>
           Lê seu plano e seu dia, e pode <strong>marcar refeições, água e avulsos</strong> por você.
           Modelo: <code>{model}</code>. Cobrado no seu crédito OpenRouter (as mensagens passam por lá).

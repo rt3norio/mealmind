@@ -3,7 +3,9 @@ import {
   useContext,
   useEffect,
   useState,
+  type Dispatch,
   type ReactNode,
+  type SetStateAction,
 } from 'react';
 import type { ExtraEntry, MealLog, Measurement, NutritionDoc } from './data/types';
 import { parseAndValidate, type ValidationResult } from './data/validator';
@@ -54,6 +56,16 @@ interface StoreValue {
   orConnect: () => Promise<void>;
   /** Forget the OpenRouter key. */
   orDisconnect: () => void;
+  /** Coach chat history, persisted in memory across tab navigation. */
+  coachTurns: CoachTurn[];
+  setCoachTurns: Dispatch<SetStateAction<CoachTurn[]>>;
+}
+
+/** One message in the coach chat (kept in memory so it survives tab switches). */
+export interface CoachTurn {
+  role: 'user' | 'assistant';
+  content: string;
+  actions?: string[];
 }
 
 const Ctx = createContext<StoreValue | null>(null);
@@ -64,6 +76,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  const [coachTurns, setCoachTurns] = useState<CoachTurn[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -316,6 +329,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     driveDisconnect,
     orConnect,
     orDisconnect,
+    coachTurns,
+    setCoachTurns,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
