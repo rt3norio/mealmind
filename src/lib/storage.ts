@@ -29,6 +29,10 @@ export interface Settings {
   driveToken?: string;
   /** Epoch ms when the cached token expires. */
   driveTokenExp?: number;
+  /** OpenRouter API key obtained via the user's own OAuth (billed to them). */
+  openrouterKey?: string;
+  /** OpenRouter model id for the coach (defaults to a cheap one). */
+  openrouterModel?: string;
 }
 
 let dbp: Promise<IDBPDatabase> | null = null;

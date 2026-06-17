@@ -16,6 +16,7 @@ import {
   type Settings,
 } from './lib/storage';
 import * as drive from './lib/drive';
+import * as openrouter from './lib/openrouter';
 import { BUILTIN_CLIENT_ID } from './lib/config';
 
 interface StoreValue {
@@ -49,6 +50,10 @@ interface StoreValue {
   signedIn: boolean;
   /** The client id actually used: per-device override, else the baked-in app id. */
   effectiveClientId: string;
+  /** Start the OpenRouter OAuth flow (redirects away). */
+  orConnect: () => Promise<void>;
+  /** Forget the OpenRouter key. */
+  orDisconnect: () => void;
 }
 
 const Ctx = createContext<StoreValue | null>(null);
@@ -65,6 +70,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const [d, s] = await Promise.all([loadDoc(), loadSettings()]);
       setDoc(d);
       setSettings(s);
+
+      // Finish the OpenRouter OAuth flow if we came back with a code.
+      const code = openrouter.pendingCode();
+      if (code && !s.openrouterKey) {
+        try {
+          const key = await openrouter.exchangeCode(code);
+          setSettings(await saveSettings({ openrouterKey: key }));
+          setStatus('Conectado ao OpenRouter.');
+        } catch (e) {
+          setStatus(errMsg(e));
+        } finally {
+          openrouter.clearCodeFromUrl();
+        }
+      } else if (code) {
+        openrouter.clearCodeFromUrl();
+      }
 
       // Restore the Drive session without making the user click again.
       const cid = s.driveClientId || BUILTIN_CLIENT_ID;
@@ -266,6 +287,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setStatus('Desconectado do Google Drive.');
   }
 
+  async function orConnect() {
+    try {
+      await openrouter.startAuth();
+    } catch (e) {
+      setStatus(errMsg(e));
+    }
+  }
+
+  function orDisconnect() {
+    void updateSettings({ openrouterKey: undefined });
+    setStatus('Desconectado do OpenRouter.');
+  }
+
   if (!doc) {
     return (
       <div className="boot">
@@ -295,6 +329,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     driveSyncUp,
     driveSyncDown,
     driveDisconnect,
+    orConnect,
+    orDisconnect,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

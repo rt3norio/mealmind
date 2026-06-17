@@ -3,12 +3,13 @@ import { StoreProvider, useStore } from './store';
 import Today from './pages/Today';
 import Plan from './pages/Plan';
 import History from './pages/History';
+import Coach from './pages/Coach';
 import Data from './pages/Data';
 import Help from './pages/Help';
 import Settings from './pages/Settings';
 
 function Shell() {
-  const { status, signedIn, effectiveClientId } = useStore();
+  const { status, signedIn, effectiveClientId, settings } = useStore();
   return (
     <div className="app">
       <header className="topbar">
@@ -25,6 +26,7 @@ function Shell() {
           <Route path="/" element={<Today />} />
           <Route path="/plano" element={<Plan />} />
           <Route path="/historico" element={<History />} />
+          <Route path="/coach" element={<Coach />} />
           <Route path="/dados" element={<Data />} />
           <Route path="/ajuda" element={<Help />} />
           <Route path="/config" element={<Settings />} />
@@ -38,6 +40,7 @@ function Shell() {
           <Tab to="/" icon="📅" label="Hoje" />
           <Tab to="/plano" icon="📋" label="Plano" />
           <Tab to="/historico" icon="📊" label="Hist." />
+          {settings.openrouterKey && <Tab to="/coach" icon="💬" label="Coach" />}
           <Tab to="/dados" icon="🔄" label="Dados" />
           <Tab to="/ajuda" icon="❓" label="Ajuda" />
           <Tab to="/config" icon="⚙️" label="Config" />

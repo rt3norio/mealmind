@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../store';
 import { BUILTIN_CLIENT_ID } from '../lib/config';
+import { DEFAULT_MODEL } from '../lib/openrouter';
 
 export default function Settings() {
   const {
@@ -13,8 +14,11 @@ export default function Settings() {
     driveDisconnect,
     driveSyncUp,
     driveSyncDown,
+    orConnect,
+    orDisconnect,
   } = useStore();
   const [clientId, setClientId] = useState(settings.driveClientId ?? '');
+  const [model, setModel] = useState(settings.openrouterModel ?? '');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const lastSync = settings.lastSyncedAt
@@ -68,6 +72,29 @@ export default function Settings() {
       </div>
 
       <div className="card">
+        <h2>Coach com IA (OpenRouter)</h2>
+        <p className="sub">
+          Conecte sua conta <strong>OpenRouter</strong> e converse com um coach que lê seu plano
+          e seu dia. O uso é cobrado no <strong>seu</strong> crédito OpenRouter — não no app.
+        </p>
+        {!settings.openrouterKey ? (
+          <button className="primary" onClick={orConnect} disabled={busy}>
+            🔗 Conectar OpenRouter
+          </button>
+        ) : (
+          <>
+            <div className="banner ok">Conectado ao OpenRouter. A aba 💬 Coach está liberada.</div>
+            <button className="ghost sm" onClick={orDisconnect}>Desconectar</button>
+          </>
+        )}
+        <p className="sub" style={{ marginTop: 12 }}>
+          ⚠️ Diferente do Drive, as mensagens do coach <strong>passam pelo OpenRouter</strong>
+          {' '}(saem do navegador). Modelo padrão: <code>{DEFAULT_MODEL}</code> (barato). Precisa de
+          conta OpenRouter com crédito; há modelos gratuitos também.
+        </p>
+      </div>
+
+      <div className="card">
         <h2>Sobre</h2>
         <p className="sub">
           MealMind — aberto, gratuito e sem backend. Funciona offline (PWA): adicione
@@ -100,6 +127,23 @@ export default function Settings() {
           <p className="sub">
             Origem JavaScript a autorizar no Google Cloud: <code>{window.location.origin}</code>
           </p>
+
+          <h2 style={{ marginTop: 18 }}>Avançado — Modelo do coach</h2>
+          <p className="sub">
+            Modelo do OpenRouter para o coach. Em branco usa <code>{DEFAULT_MODEL}</code>. Ex.:
+            um modelo gratuito termina em <code>:free</code>.
+          </p>
+          <label className="field">
+            <span className="lbl">Modelo (OpenRouter)</span>
+            <input
+              type="text"
+              value={model}
+              placeholder={DEFAULT_MODEL}
+              onChange={(e) => setModel(e.target.value.trim())}
+              onBlur={() => updateSettings({ openrouterModel: model || undefined })}
+              spellCheck={false}
+            />
+          </label>
         </div>
       )}
     </>
