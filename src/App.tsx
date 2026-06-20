@@ -1,5 +1,6 @@
 import { HashRouter, NavLink, Route, Routes } from 'react-router-dom';
 import { StoreProvider, useStore } from './store';
+import { WorkoutProvider } from './workout/store';
 import Today from './pages/Today';
 import Plan from './pages/Plan';
 import History from './pages/History';
@@ -7,6 +8,7 @@ import Coach from './pages/Coach';
 import Data from './pages/Data';
 import Help from './pages/Help';
 import Settings from './pages/Settings';
+import Workout from './pages/Workout';
 
 function Shell() {
   const { status, signedIn, effectiveClientId, settings } = useStore();
@@ -25,6 +27,7 @@ function Shell() {
         <Routes>
           <Route path="/" element={<Today />} />
           <Route path="/plano" element={<Plan />} />
+          <Route path="/treino" element={<Workout />} />
           <Route path="/historico" element={<History />} />
           <Route path="/coach" element={<Coach />} />
           <Route path="/dados" element={<Data />} />
@@ -39,6 +42,7 @@ function Shell() {
         <nav>
           <Tab to="/" icon="📅" label="Hoje" />
           <Tab to="/plano" icon="📋" label="Plano" />
+          <Tab to="/treino" icon="🏋️" label="Treino" />
           <Tab to="/historico" icon="📊" label="Hist." />
           {settings.openrouterKey && <Tab to="/coach" icon="💬" label="Coach" />}
           <Tab to="/dados" icon="🔄" label="Dados" />
@@ -63,7 +67,9 @@ export default function App() {
   return (
     <HashRouter>
       <StoreProvider>
-        <Shell />
+        <WorkoutProvider>
+          <Shell />
+        </WorkoutProvider>
       </StoreProvider>
     </HashRouter>
   );

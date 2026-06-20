@@ -6,6 +6,7 @@
 
 import { openDB, type IDBPDatabase } from 'idb';
 import type { NutritionDoc } from '../data/types';
+import type { WorkoutEntry } from '../workout/types';
 import { emptyDoc } from '../data/sample';
 
 const DB_NAME = 'app-nutrition';
@@ -13,6 +14,7 @@ const DB_VERSION = 1;
 const STORE = 'kv';
 const DOC_KEY = 'doc';
 const SETTINGS_KEY = 'settings';
+const WORKOUTS_KEY = 'workouts';
 
 export interface Settings {
   /** Google OAuth Web client id supplied by the user (their Cloud project). */
@@ -68,6 +70,17 @@ export async function saveSettings(patch: Partial<Settings>): Promise<Settings> 
   const next = { ...(await loadSettings()), ...patch };
   await d.put(STORE, next, SETTINGS_KEY);
   return next;
+}
+
+/** Workout entries live under their own key — a list, newest first. */
+export async function loadWorkouts(): Promise<WorkoutEntry[]> {
+  const d = await db();
+  return ((await d.get(STORE, WORKOUTS_KEY)) as WorkoutEntry[] | undefined) ?? [];
+}
+
+export async function saveWorkouts(entries: WorkoutEntry[]): Promise<void> {
+  const d = await db();
+  await d.put(STORE, entries, WORKOUTS_KEY);
 }
 
 /** Serialize the document for export/Drive, pretty-printed and stable. */
