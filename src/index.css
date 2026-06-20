@@ -168,6 +168,16 @@ body {
 .opt-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
 .opt-pills button { padding: 6px 10px; font-size: 0.78rem; }
 .opt-pills button.sel { background: var(--brand); border-color: var(--brand); color: #fff; }
+.opt-pills .pill-kcal { opacity: 0.7; font-weight: 400; }
+.opt-current {
+  font-size: 0.8rem;
+  margin: 8px 0 2px;
+  padding: 6px 10px;
+  background: var(--surface-2);
+  border-left: 3px solid var(--brand);
+  border-radius: 8px;
+}
+.opt-current strong { color: var(--brand-dark); }
 .eaten-badge { font-size: 0.78rem; color: var(--brand-dark); font-weight: 600; margin: 2px 0 0; }
 
 /* Partial-meal editor */

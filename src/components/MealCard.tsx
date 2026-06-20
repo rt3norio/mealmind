@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { FoodItem, Meal, MealLog } from '../data/types';
 import { itemsTotals, mealConsumed, round } from '../data/nutrition';
 
@@ -50,16 +50,21 @@ export default function MealCard({ meal, log, onSet, onClear }: Props) {
 
   const loggedOption = log?.option ?? 0;
   const [sel, setSel] = useState(loggedOption);
-  const [showAlts, setShowAlts] = useState(false);
   const [editing, setEditing] = useState(false);
   const [qtys, setQtys] = useState<string[]>([]);
 
   // Follow the logged option when it changes (e.g. on load or after a sync).
-  useEffect(() => setSel(loggedOption), [loggedOption]);
+  // Adjusting state during render is React's recommended pattern over an effect.
+  const [prevLogged, setPrevLogged] = useState(loggedOption);
+  if (prevLogged !== loggedOption) {
+    setPrevLogged(loggedOption);
+    setSel(loggedOption);
+  }
 
   const status = log?.status ?? null;
   const selItems = options[sel]?.items ?? meal.items;
   const selPlanned = itemsTotals(selItems);
+  const selNotes = sel === 0 ? meal.notes : alts[sel - 1]?.notes;
   const cls = ['card', 'meal', status ?? ''].join(' ').trim();
 
   // "active" only when the button's status AND option match what's logged.
@@ -92,7 +97,7 @@ export default function MealCard({ meal, log, onSet, onClear }: Props) {
     }, 0),
   );
 
-  const headerKcal = log ? round(mealConsumed(meal, log).calories) : round(itemsTotals(meal.items).calories);
+  const headerKcal = log ? round(mealConsumed(meal, log).calories) : round(selPlanned.calories);
 
   return (
     <article className={cls}>
@@ -107,42 +112,16 @@ export default function MealCard({ meal, log, onSet, onClear }: Props) {
         )}
       </div>
 
-      {log && loggedOption > 0 && (
+      {log && status && (
         <p className="eaten-badge">
-          {status === 'skipped' ? '✕ pulou' : status === 'partial' ? '½ parcial'  : '✓ comeu'} ·{' '}
-          {options[loggedOption]?.label}
+          {status === 'skipped' ? '✕ pulou' : status === 'partial' ? '½ parcial' : '✓ comeu'}
+          {loggedOption > 0 && <> · {options[loggedOption]?.label}</>}
         </p>
       )}
 
-      <FoodLines items={meal.items} />
-
-      {meal.notes && <p className="note">{meal.notes}</p>}
-
-      {alts.length > 0 && (
-        <div className="alts">
-          <button className="ghost sm" onClick={() => setShowAlts((v) => !v)}>
-            {showAlts ? 'Ocultar alternativas' : `🔁 Alternativas (${alts.length})`}
-          </button>
-          {showAlts &&
-            alts.map((alt, i) => {
-              const at = itemsTotals(alt.items);
-              return (
-                <div className="alt" key={i}>
-                  <div className="meal-head">
-                    <span className="meal-name">{alt.name ?? `Opção ${i + 2}`}</span>
-                    {at.calories > 0 && <span className="meal-kcal">{round(at.calories)} kcal</span>}
-                  </div>
-                  <FoodLines items={alt.items} />
-                  {alt.notes && <p className="note">{alt.notes}</p>}
-                </div>
-              );
-            })}
-        </div>
-      )}
-
-      {onSet && options.length > 1 && !editing && (
+      {options.length > 1 && !editing && (
         <>
-          <p className="opt-hint">Qual opção você comeu?</p>
+          <p className="opt-hint">{onSet ? 'Qual opção?' : 'Opções'}</p>
           <div className="opt-pills">
             {options.map((o, i) => (
               <button
@@ -151,11 +130,25 @@ export default function MealCard({ meal, log, onSet, onClear }: Props) {
                 onClick={() => setSel(i)}
               >
                 {o.label}
+                {options.length > 1 && itemsTotals(o.items).calories > 0 && (
+                  <span className="pill-kcal"> · {round(itemsTotals(o.items).calories)}</span>
+                )}
               </button>
             ))}
           </div>
         </>
       )}
+
+      {sel > 0 && (
+        <p className="opt-current">
+          🔁 Mostrando: <strong>{options[sel]?.label}</strong>
+          {loggedOption !== sel && <span className="muted"> (selecione “Comi/Parcial” pra registrar esta opção)</span>}
+        </p>
+      )}
+
+      <FoodLines items={selItems} />
+
+      {selNotes && <p className="note">{selNotes}</p>}
 
       {editing && (
         <div className="partial-editor">
