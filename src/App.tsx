@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { HashRouter, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { StoreProvider, useStore } from './store';
 import Today from './pages/Today';
@@ -9,22 +9,54 @@ import Data from './pages/Data';
 import Help from './pages/Help';
 import Settings from './pages/Settings';
 import Workout from './pages/Workout';
+import {
+  IconToday,
+  IconPlan,
+  IconDumbbell,
+  IconTrend,
+  IconMore,
+  IconData,
+  IconChat,
+  IconHelp,
+  IconSettings,
+} from './components/icons';
 
 function Shell() {
   const { doc, status, signedIn, effectiveClientId, settings } = useStore();
   const hasFood = doc.plan.meals.length > 0;
   const hasWorkouts = (doc.workouts?.length ?? 0) > 0;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { pathname } = useLocation();
+
+  // Close the overflow menu whenever the route changes.
+  useEffect(() => setMenuOpen(false), [pathname]);
+
   return (
     <div className="app">
       <Landing hasFood={hasFood} hasWorkouts={hasWorkouts} />
       <header className="topbar">
-        <span className="logo" aria-hidden>🥗</span>
+        <span className="logo" aria-hidden>M</span>
         <h1>MealMind</h1>
         <span className="spacer" />
-        <span className="sync-dot">
-          {effectiveClientId ? (signedIn ? '● Drive' : '○ Drive') : ''}
-        </span>
+        {effectiveClientId && (
+          <span className={'drive-dot' + (signedIn ? ' on' : '')} title={signedIn ? 'Drive conectado' : 'Drive desconectado'} />
+        )}
+        <button className="menu-btn" aria-label="Mais opções" aria-expanded={menuOpen} onClick={() => setMenuOpen((v) => !v)}>
+          <IconMore />
+        </button>
       </header>
+
+      {menuOpen && (
+        <>
+          <div className="menu-backdrop" onClick={() => setMenuOpen(false)} />
+          <nav className="menu-pop">
+            <MenuItem to="/dados" icon={<IconData />} label="Importar / exportar" />
+            {settings.openrouterKey && <MenuItem to="/coach" icon={<IconChat />} label="Coach" />}
+            <MenuItem to="/ajuda" icon={<IconHelp />} label="Ajuda" />
+            <MenuItem to="/config" icon={<IconSettings />} label="Ajustes" />
+          </nav>
+        </>
+      )}
 
       <main className="content">
         <Routes>
@@ -41,18 +73,16 @@ function Shell() {
 
       {status && <div className="status-toast">{status}</div>}
 
-      <div className="tabbar">
-        <nav>
-          {hasFood && <Tab to="/" icon="📅" label="Hoje" />}
-          {hasFood && <Tab to="/plano" icon="📋" label="Plano" />}
-          {hasWorkouts && <Tab to="/treino" icon="🏋️" label="Treino" />}
-          {hasFood && <Tab to="/historico" icon="📊" label="Hist." />}
-          {hasFood && settings.openrouterKey && <Tab to="/coach" icon="💬" label="Coach" />}
-          <Tab to="/dados" icon="🔄" label="Dados" />
-          <Tab to="/ajuda" icon="❓" label="Ajuda" />
-          <Tab to="/config" icon="⚙️" label="Config" />
-        </nav>
-      </div>
+      {(hasFood || hasWorkouts) && (
+        <div className="tabbar">
+          <nav>
+            {hasFood && <Tab to="/" icon={<IconToday />} label="Hoje" />}
+            {hasFood && <Tab to="/plano" icon={<IconPlan />} label="Plano" />}
+            {hasWorkouts && <Tab to="/treino" icon={<IconDumbbell />} label="Treino" />}
+            {hasFood && <Tab to="/historico" icon={<IconTrend />} label="Progresso" />}
+          </nav>
+        </div>
+      )}
     </div>
   );
 }
@@ -72,10 +102,19 @@ function Landing({ hasFood, hasWorkouts }: { hasFood: boolean; hasWorkouts: bool
   return null;
 }
 
-function Tab({ to, icon, label }: { to: string; icon: string; label: string }) {
+function Tab({ to, icon, label }: { to: string; icon: ReactNode; label: string }) {
   return (
     <NavLink to={to} end={to === '/'} className={({ isActive }) => (isActive ? 'active' : '')}>
-      <span className="ic" aria-hidden>{icon}</span>
+      <span className="ic">{icon}</span>
+      <span>{label}</span>
+    </NavLink>
+  );
+}
+
+function MenuItem({ to, icon, label }: { to: string; icon: ReactNode; label: string }) {
+  return (
+    <NavLink to={to} className={({ isActive }) => 'menu-item' + (isActive ? ' active' : '')}>
+      <span className="mi-ic">{icon}</span>
       <span>{label}</span>
     </NavLink>
   );
