@@ -20,16 +20,17 @@ const text = (t: string) => ({ content: [{ type: 'text' as const, text: t }] });
 
 server.tool(
   'get_schema',
-  'Retorna a especificação completa (LLM-ready) do JSON de prescrição do ' +
-    'MealMind: regras do formato, unidades válidas e um exemplo completo. ' +
+  'Retorna a especificação completa (LLM-ready) do JSON do MealMind: regras do ' +
+    'formato da dieta E do treino (musculação), unidades válidas e um exemplo ' +
+    'completo. O arquivo pode trazer só dieta, só treino, ou os dois. ' +
     'Chame isto antes de gerar um plano.',
   async () => text(LLM_PROMPT),
 );
 
 server.tool(
   'create_plan_template',
-  'Retorna um plano alimentar de exemplo, já válido, para usar como ponto de ' +
-    'partida e então editar com os dados reais do paciente.',
+  'Retorna um exemplo já válido (dieta + programa de treino A/B/C) para usar como ' +
+    'ponto de partida e então editar com os dados reais do usuário.',
   async () => text(SAMPLE_JSON),
 );
 
@@ -43,7 +44,7 @@ function formatIssues(label: string, issues: ValidationIssue[]): string {
 
 server.tool(
   'validate_plan',
-  'Valida um JSON de prescrição contra o schema do MealMind (mesmo ' +
+  'Valida um JSON do MealMind (dieta e/ou treino) contra o schema (mesmo ' +
     'validador da aba Dados). Use repetidamente até "valid": true antes de ' +
     'entregar o JSON ao usuário.',
   { json: z.string().describe('O conteúdo JSON do plano a validar.') },

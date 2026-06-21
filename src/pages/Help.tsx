@@ -34,11 +34,12 @@ export default function Help() {
   return (
     <>
       <div className="card">
-        <h2>Como criar a prescrição</h2>
+        <h2>Como criar o plano</h2>
         <p className="sub">
-          O plano é um arquivo <strong>JSON</strong>. O nutricionista pode escrevê-lo à
-          mão ou gerar com uma IA. Abaixo há um texto pronto: copie, cole no ChatGPT,
-          Claude ou Gemini, descreva o plano do paciente e o arquivo sai pronto.
+          O plano é um arquivo <strong>JSON</strong> que pode trazer a <strong>dieta</strong>,
+          o <strong>treino</strong>, ou os dois. Escreva à mão ou gere com uma IA: copie o
+          texto abaixo, cole no ChatGPT, Claude ou Gemini, descreva o que você quer e o
+          arquivo sai pronto.
         </p>
         <div className="btn-row">
           <button className="primary" onClick={() => copy('prompt')}>

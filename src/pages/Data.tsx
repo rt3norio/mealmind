@@ -2,7 +2,6 @@ import { useRef, useState } from 'react';
 import { useStore, type CombinedImport } from '../store';
 import { downloadDoc } from '../lib/storage';
 import { SAMPLE_DOC } from '../data/sample';
-import { SAMPLE_WORKOUTS } from '../workout/io';
 import { Link } from 'react-router-dom';
 
 interface Issue {
@@ -37,7 +36,7 @@ export default function Data() {
   }
 
   const hasData = doc.plan.meals.length > 0 || (doc.workouts?.length ?? 0) > 0;
-  const example = JSON.stringify({ ...SAMPLE_DOC, workouts: SAMPLE_WORKOUTS }, null, 2);
+  const example = JSON.stringify(SAMPLE_DOC, null, 2);
 
   return (
     <>

@@ -79,5 +79,17 @@ export const SAMPLE_DOC: NutritionDoc = {
       },
     ],
   },
+  // Optional training side — the same file carries diet and/or workout.
+  workoutPlan: {
+    days: [
+      { id: 'A', label: 'A', name: 'Empurrar', exercises: ['Supino', 'Desenvolvimento máquina', 'Tríceps polia'] },
+      { id: 'B', label: 'B', name: 'Puxar', exercises: ['Puxada alta', 'Remada baixa', 'Rosca direta'] },
+      { id: 'C', label: 'C', name: 'Pernas', exercises: ['Leg press', 'Cadeira extensora', 'Cadeira flexora'] },
+    ],
+  },
+  workouts: [
+    { id: 'w-ex-1', date: '2026-01-03', exercise: 'Supino', sets: [{ weight: 40, unit: 'kg', reps: 10 }], note: '' },
+    { id: 'w-ex-2', date: '2026-01-06', exercise: 'Supino', sets: [{ weight: 42.5, unit: 'kg', reps: 10 }], note: 'subiu 2,5kg' },
+  ],
   logs: { meals: [], measurements: [] },
 };

@@ -8,13 +8,18 @@ const SAMPLE_JSON = JSON.stringify(SAMPLE_DOC, null, 2);
  * into ChatGPT/Claude/Gemini, describe the patient's plan in plain language, and
  * get back a file that imports cleanly into MealMind.
  */
-export const LLM_PROMPT = `Você é um assistente que gera o arquivo JSON de prescrição do app "MealMind".
+export const LLM_PROMPT = `Você é um assistente que gera o arquivo JSON do app "MealMind".
+O mesmo arquivo pode conter a DIETA (plano alimentar) e/ou o TREINO (musculação).
 Gere SOMENTE o JSON final, sem comentários e sem texto antes ou depois.
 
 REGRAS DO FORMATO
 - O documento é um único objeto JSON.
 - Campo obrigatório: "schemaVersion" deve ser exatamente "1.0".
-- Campo obrigatório: "plan", um objeto contendo "meals" (lista de refeições).
+- O arquivo deve ter pelo menos UM destes: a dieta ("plan") ou o treino
+  ("workoutPlan" e/ou "workouts"). Pode ter só dieta, só treino, ou os dois.
+
+DIETA ("plan") — inclua se o usuário pediu plano alimentar:
+- "plan" é um objeto contendo "meals" (lista de refeições).
 - Cada refeição em "meals" tem:
   - "id": identificador único, só minúsculas/números/hífen. Ex.: "cafe-da-manha".
   - "name": nome exibido. Ex.: "Café da manhã".
@@ -36,6 +41,23 @@ REGRAS DO FORMATO
 - Opcional "patient": { "name", "notes"? }.
 - Opcional "professional": { "name", "registration"?, "contact"? }.
 - NÃO inclua a seção "logs"; o app cria e gerencia o histórico do paciente.
+
+TREINO (opcional) — inclua se o usuário pediu treino de musculação. Duas seções
+no nível raiz do documento (irmãs de "plan"):
+- "workoutPlan": o programa/rotina (ex.: split A/B/C). Objeto com "days" (lista).
+  Cada dia tem:
+  - "label": marcador curto. Ex.: "A".
+  - "name": foco do dia. Ex.: "Empurrar".
+  - "exercises": lista de nomes de exercícios (textos). Ex.: ["Supino", "Tríceps polia"].
+- "workouts": histórico de sessões já feitas (opcional; só se o usuário informou
+  cargas). Lista de objetos, cada um:
+  - "date": "AAAA-MM-DD".
+  - "exercise": nome do exercício (texto).
+  - "sets": lista de séries. Cada série tem "weight" (número, ou null se for só
+    peso do corpo), "unit" (uma destas EXATAS: placa, kg, kg/lado) e "reps"
+    (número, ou null).
+  - opcional: "note" (texto).
+- Use "workoutPlan" para a rotina e "workouts" para o histórico — são independentes.
 
 CUIDADOS
 - Números nunca entre aspas (use 120, não "120").
@@ -61,6 +83,8 @@ export const FIELD_REFERENCE: { name: string; required: boolean; desc: string }[
   { name: 'plan.supplements', required: false, desc: 'name, dose, time?, notes?.' },
   { name: 'plan.restrictions / recommendations', required: false, desc: 'Listas de texto.' },
   { name: 'patient / professional', required: false, desc: 'Identificação opcional do plano.' },
+  { name: 'workoutPlan.days[]', required: false, desc: 'Programa de treino (split A/B/C): cada dia com label, name e exercises[] (nomes).' },
+  { name: 'workouts[]', required: false, desc: 'Sessões registradas: date, exercise e sets[] (weight, unit placa|kg|kg/lado, reps).' },
 ];
 
 export { SAMPLE_JSON };

@@ -157,9 +157,59 @@ function validateMeal(c: Collector, path: string, meal: unknown, seenIds: Set<st
   }
 }
 
+const WORKOUT_UNITS = ['placa', 'kg', 'kg/lado'];
+
+function validateWorkoutEntry(c: Collector, path: string, w: unknown): void {
+  if (!isObject(w)) {
+    c.err(path, 'Cada sessão de treino deve ser um objeto.');
+    return;
+  }
+  if (checkString(c, `${path}.date`, w.date, { required: true }) && !DATE_RE.test(w.date as string)) {
+    c.err(`${path}.date`, `Data "${w.date as string}" inválida.`, 'Use o formato "AAAA-MM-DD".');
+  }
+  checkString(c, `${path}.exercise`, w.exercise, { required: true, nonEmpty: true });
+  if (w.sets === undefined) {
+    c.warn(path, 'Sessão sem "sets" (séries).');
+  } else if (!Array.isArray(w.sets)) {
+    c.err(`${path}.sets`, '"sets" deve ser uma lista de séries.');
+  } else {
+    w.sets.forEach((s, i) => {
+      const sp = `${path}.sets[${i}]`;
+      if (!isObject(s)) {
+        c.err(sp, 'Cada série deve ser um objeto.');
+        return;
+      }
+      const hasWeight = s.weight !== undefined && s.weight !== null;
+      if (hasWeight) checkNumber(c, `${sp}.weight`, s.weight, { positive: true });
+      if (hasWeight && s.unit !== undefined && s.unit !== null &&
+          (typeof s.unit !== 'string' || !WORKOUT_UNITS.includes(s.unit))) {
+        c.err(`${sp}.unit`, `Unidade de treino inválida: ${describe(s.unit)}.`, `Use uma de: ${WORKOUT_UNITS.join(', ')}.`);
+      }
+      if (s.reps !== undefined && s.reps !== null) checkNumber(c, `${sp}.reps`, s.reps, { positive: true });
+    });
+  }
+}
+
+function validateRoutineDay(c: Collector, path: string, d: unknown): void {
+  if (!isObject(d)) {
+    c.err(path, 'Cada dia do programa deve ser um objeto.');
+    return;
+  }
+  if (d.label !== undefined) checkString(c, `${path}.label`, d.label);
+  if (d.name !== undefined) checkString(c, `${path}.name`, d.name);
+  if (d.exercises === undefined) {
+    c.warn(path, 'Dia do programa sem "exercises".');
+  } else if (!Array.isArray(d.exercises)) {
+    c.err(`${path}.exercises`, '"exercises" deve ser uma lista de nomes (textos).');
+  } else {
+    d.exercises.forEach((e, i) => checkString(c, `${path}.exercises[${i}]`, e, { required: true, nonEmpty: true }));
+  }
+}
+
 /**
  * Validate an unknown value as a NutritionDoc.
  * Logs may be absent (a fresh prescription has none) — that is not an error.
+ * The diet "plan" is optional when the file carries only training.
  */
 export function validate(raw: unknown): ValidationResult {
   const c = new Collector();
@@ -175,8 +225,12 @@ export function validate(raw: unknown): ValidationResult {
     c.warn('schemaVersion', `Versão "${String(raw.schemaVersion)}" diferente da suportada (${SCHEMA_VERSION}).`, 'O app tentará abrir mesmo assim.');
   }
 
-  if (!isObject(raw.plan)) {
-    c.err('plan', 'Campo "plan" obrigatório está faltando ou não é um objeto.', 'Adicione "plan": { "meals": [ ... ] }.');
+  const hasWorkout = raw.workouts !== undefined || raw.workoutPlan !== undefined;
+
+  if (raw.plan === undefined && hasWorkout) {
+    // Workout-only file: the diet "plan" is optional.
+  } else if (!isObject(raw.plan)) {
+    c.err('plan', 'Campo "plan" está faltando ou não é um objeto.', 'Adicione "plan": { "meals": [ ... ] }, ou inclua treino ("workoutPlan"/"workouts").');
   } else {
     const plan = raw.plan;
     if (!Array.isArray(plan.meals)) {
@@ -236,6 +290,26 @@ export function validate(raw: unknown): ValidationResult {
     }
   }
 
+  // Training program (optional).
+  if (raw.workoutPlan !== undefined) {
+    if (!isObject(raw.workoutPlan)) {
+      c.err('workoutPlan', 'Se presente, "workoutPlan" deve ser um objeto com "days".');
+    } else if (!Array.isArray(raw.workoutPlan.days)) {
+      c.err('workoutPlan.days', '"workoutPlan" precisa de uma lista "days".', 'Adicione "days": [ { "label": "A", "name": "...", "exercises": [ ... ] } ].');
+    } else {
+      raw.workoutPlan.days.forEach((d, i) => validateRoutineDay(c, `workoutPlan.days[${i}]`, d));
+    }
+  }
+
+  // Logged training sessions (optional).
+  if (raw.workouts !== undefined) {
+    if (!Array.isArray(raw.workouts)) {
+      c.err('workouts', 'Se presente, "workouts" deve ser uma lista de sessões.');
+    } else {
+      raw.workouts.forEach((w, i) => validateWorkoutEntry(c, `workouts[${i}]`, w));
+    }
+  }
+
   return finalize(c);
 }
 
@@ -286,6 +360,7 @@ export function parseAndValidate(
 export function normalize(doc: NutritionDoc): NutritionDoc {
   return {
     ...doc,
+    plan: doc.plan ?? { meals: [] },
     logs: {
       meals: doc.logs?.meals ?? [],
       measurements: doc.logs?.measurements ?? [],

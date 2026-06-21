@@ -10,21 +10,27 @@ qualquer problema.
 
 ## Estrutura
 
-O documento é **um único objeto JSON**.
+O documento é **um único objeto JSON**. Ele pode trazer a **dieta** (`plan`), o
+**treino** (`workoutPlan` e/ou `workouts`), ou os dois — basta ter pelo menos um.
 
 | Campo | Obrigatório | Descrição |
 |-------|:-----------:|-----------|
 | `schemaVersion` | ✅ | Sempre a string `"1.0"`. |
-| `plan` | ✅ | Objeto com o plano. Contém `meals`. |
-| `plan.meals` | ✅ | Lista de refeições (ver abaixo). |
+| `plan` | ✱ | Objeto com a dieta (contém `meals`). Obrigatório **se** o arquivo tem dieta. |
+| `plan.meals` | ✱ | Lista de refeições (ver abaixo). |
 | `plan.goals` | — | Metas diárias: `calories`, `protein_g`, `carbs_g`, `fat_g`, `water_ml` (números). |
 | `plan.supplements` | — | Lista de `{ name, dose, time?, notes? }`. |
 | `plan.restrictions` | — | Lista de textos, ex.: `["Sem lactose"]`. |
 | `plan.recommendations` | — | Lista de textos com orientações gerais. |
 | `plan.startDate` / `plan.endDate` | — | Datas `"AAAA-MM-DD"`. |
+| `workoutPlan` | — | Programa de treino (split A/B/C). Ver **Treino** abaixo. |
+| `workouts` | — | Histórico de sessões de treino. Ver **Treino** abaixo. |
 | `patient` | — | `{ name, notes? }`. |
 | `professional` | — | `{ name, registration?, contact? }`. |
 | `createdAt` | — | Data/hora ISO da emissão. |
+
+> ✱ = obrigatório só quando o arquivo inclui a dieta. Um arquivo de **só treino**
+> não precisa de `plan`.
 
 > **Não** inclua a seção `logs`. O app cria e gerencia o histórico do paciente.
 
@@ -48,6 +54,50 @@ O documento é **um único objeto JSON**.
 | `calories`, `protein_g`, `carbs_g`, `fat_g` | — | Macros (números). Recomendado — habilitam o progresso diário. |
 | `alternatives` | — | Texto com substituições. Ex.: `"ou 2 fatias de pão"`. |
 | `notes` | — | Observação do alimento. |
+
+## Treino (opcional)
+
+Duas seções no nível raiz, irmãs de `plan`. Inclua só se o arquivo tem treino.
+
+### Programa (`workoutPlan`)
+
+A rotina — por exemplo um split A/B/C. Objeto com uma lista `days`.
+
+| Campo | Obrigatório | Descrição |
+|-------|:-----------:|-----------|
+| `workoutPlan.days[]` | ✅ | Lista de dias. |
+| `days[].label` | — | Marcador curto. Ex.: `"A"`. |
+| `days[].name` | — | Foco do dia. Ex.: `"Empurrar"`. |
+| `days[].exercises` | ✅ | Lista de nomes de exercícios (textos). |
+
+### Histórico de sessões (`workouts`)
+
+As sessões já feitas, com cargas. Lista de objetos.
+
+| Campo | Obrigatório | Descrição |
+|-------|:-----------:|-----------|
+| `date` | ✅ | Data `"AAAA-MM-DD"`. |
+| `exercise` | ✅ | Nome do exercício. |
+| `sets` | ✅ | Lista de séries. |
+| `sets[].weight` | — | Carga (número), ou `null` se for peso do corpo. |
+| `sets[].unit` | — | Uma de: `placa`, `kg`, `kg/lado`. |
+| `sets[].reps` | — | Repetições (número) ou `null`. |
+| `note` | — | Observação da sessão. |
+
+```json
+{
+  "schemaVersion": "1.0",
+  "workoutPlan": {
+    "days": [
+      { "label": "A", "name": "Empurrar", "exercises": ["Supino", "Tríceps polia"] },
+      { "label": "B", "name": "Puxar", "exercises": ["Puxada alta", "Remada baixa"] }
+    ]
+  },
+  "workouts": [
+    { "date": "2026-01-03", "exercise": "Supino", "sets": [ { "weight": 40, "unit": "kg", "reps": 10 } ] }
+  ]
+}
+```
 
 ## Regras que evitam erro
 
