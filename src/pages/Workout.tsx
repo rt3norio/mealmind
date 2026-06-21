@@ -20,7 +20,7 @@ import {
   variation,
 } from '../workout/helpers';
 
-type View = 'registrar' | 'historico' | 'evolucao';
+type View = 'programa' | 'registrar' | 'historico' | 'evolucao';
 
 const numW = (s: string): number | null => {
   const n = parseFloat(s.replace(',', '.'));
@@ -52,21 +52,41 @@ function rowsFromSets(sets: WorkoutSet[]): Row[] {
 
 function EntryForm({
   initial,
+  startExercise,
   onSubmit,
   onCancel,
   submitLabel,
 }: {
   initial?: WorkoutEntry;
+  startExercise?: string;
   onSubmit: (e: Omit<WorkoutEntry, 'id'>) => void;
   onCancel?: () => void;
   submitLabel: string;
 }) {
-  const { entries } = useWorkouts();
-  const known = useMemo(() => knownExercises(entries), [entries]);
+  const { entries, plan } = useWorkouts();
+  // Autocomplete from both the program (so prescribed names appear before being
+  // logged) and past sessions.
+  const known = useMemo(() => {
+    const fromPlan = (plan?.days ?? []).flatMap((d) => d.exercises);
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const name of [...fromPlan, ...knownExercises(entries)]) {
+      const k = norm(name);
+      if (k && !seen.has(k)) {
+        seen.add(k);
+        out.push(name);
+      }
+    }
+    return out;
+  }, [entries, plan]);
 
   const [date, setDate] = useState(initial?.date ?? todayISO());
-  const [exercise, setExercise] = useState(initial?.exercise ?? '');
-  const [rows, setRows] = useState<Row[]>(rowsFromSets(initial?.sets ?? []));
+  const [exercise, setExercise] = useState(initial?.exercise ?? startExercise ?? '');
+  const [rows, setRows] = useState<Row[]>(() => {
+    if (initial?.sets?.length) return rowsFromSets(initial.sets);
+    if (startExercise) return [blankRow(lastUnitFor(entries, startExercise) ?? 'kg')];
+    return [blankRow()];
+  });
   const [note, setNote] = useState(initial?.note ?? '');
   const raw = initial?.raw;
 
@@ -189,18 +209,19 @@ function EntryForm({
 
 /* ------------------------------- Registrar ------------------------------ */
 
-function RegisterView() {
+function RegisterView({ startExercise, resetKey = 0 }: { startExercise?: string; resetKey?: number }) {
   const { addEntry } = useWorkouts();
   const [savedName, setSavedName] = useState<string | null>(null);
-  // Remount the form after each save to reset its fields.
+  // Remount the form after each save (clear) and when an external prefill arrives.
   const [formKey, setFormKey] = useState(0);
 
   return (
     <div className="card">
-      <h2>📝 Registrar treino</h2>
+      <h2>Registrar treino</h2>
       <p className="sub">Carga, unidade e repetições. O exercício autocompleta e sugere a unidade da última vez.</p>
       <EntryForm
-        key={formKey}
+        key={`${resetKey}-${formKey}`}
+        startExercise={startExercise}
         submitLabel="Salvar treino"
         onSubmit={(e) => {
           addEntry(e);
@@ -456,7 +477,7 @@ function EvolutionView() {
 
   return (
     <div className="card">
-      <h2>📈 Evolução</h2>
+      <h2>Evolução</h2>
       <p className="sub">Toque num exercício para ver o gráfico ao longo do tempo.</p>
       <div className="wk-ex-list">
         {rows.map((r) => (
@@ -478,18 +499,136 @@ function EvolutionView() {
   );
 }
 
+/* ------------------------------- Programa ------------------------------- */
+
+function AddExercise({ onAdd }: { onAdd: (name: string) => void }) {
+  const [v, setV] = useState('');
+  const commit = () => {
+    if (v.trim()) {
+      onAdd(v.trim());
+      setV('');
+    }
+  };
+  return (
+    <div className="wk-set-row" style={{ marginTop: 10 }}>
+      <input
+        type="text"
+        value={v}
+        placeholder="+ exercício"
+        onChange={(e) => setV(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && commit()}
+        style={{ flex: 1 }}
+      />
+      <button className="sm" disabled={!v.trim()} onClick={commit}>
+        Add
+      </button>
+    </div>
+  );
+}
+
+function ProgramaView({ onLog }: { onLog: (name: string) => void }) {
+  const { plan, addDay, removeDay, addExercise, removeExercise } = useWorkouts();
+  const [edit, setEdit] = useState(false);
+  const days = plan?.days ?? [];
+
+  if (days.length === 0) {
+    return (
+      <div className="empty">
+        <div className="big">🗂️</div>
+        <p>Sem programa ainda.</p>
+        <p className="muted">Importe seu treino pelo menu ••• → Importar, ou monte aqui mesmo.</p>
+        <button className="primary" style={{ marginTop: 16 }} onClick={addDay}>
+          Criar dia A
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="wk-prog-head">
+        <p className="sub" style={{ margin: 0 }}>
+          {edit ? 'Edite os dias e exercícios.' : 'Toque num exercício para registrar.'}
+        </p>
+        <button className="ghost sm" onClick={() => setEdit((v) => !v)}>
+          {edit ? 'Concluir' : 'Editar'}
+        </button>
+      </div>
+
+      {days.map((d) => (
+        <div className="card wk-day" key={d.id}>
+          <div className="wk-day-head">
+            <span className="wk-day-badge">{d.label}</span>
+            <span className="wk-day-name">{d.name || 'Treino'}</span>
+            {edit && (
+              <button
+                className="ghost sm"
+                onClick={() => confirm(`Apagar o dia ${d.label}?`) && removeDay(d.id)}
+              >
+                Apagar
+              </button>
+            )}
+          </div>
+
+          <div className="wk-prog-list">
+            {d.exercises.map((ex, i) => (
+              <div className="wk-prog-row" key={i}>
+                <button className="wk-prog-ex" onClick={() => onLog(ex)}>
+                  <span>{ex}</span>
+                  <span className="wk-prog-go" aria-hidden>registrar →</span>
+                </button>
+                {edit && (
+                  <button className="ghost sm" aria-label="Remover exercício" onClick={() => removeExercise(d.id, i)}>
+                    ✕
+                  </button>
+                )}
+              </div>
+            ))}
+            {d.exercises.length === 0 && !edit && <p className="muted" style={{ fontSize: '0.85rem' }}>Sem exercícios.</p>}
+          </div>
+
+          {edit && <AddExercise onAdd={(name) => addExercise(d.id, name)} />}
+        </div>
+      ))}
+
+      {edit && (
+        <button className="ghost sm wk-clear" onClick={addDay}>
+          + adicionar dia
+        </button>
+      )}
+    </>
+  );
+}
+
 /* --------------------------------- shell -------------------------------- */
 
 export default function Workout() {
-  const { ready, entries, clearAll } = useWorkouts();
-  const [view, setView] = useState<View>('registrar');
+  const { ready, entries, plan, clearAll } = useWorkouts();
+  const [view, setView] = useState<View>(plan && entries.length === 0 ? 'programa' : 'registrar');
+  const [prefill, setPrefill] = useState<string | undefined>();
+  const [prefillKey, setPrefillKey] = useState(0);
 
   if (!ready) return <div className="boot">Carregando…</div>;
+
+  function logExercise(name: string) {
+    setPrefill(name);
+    setPrefillKey((k) => k + 1);
+    setView('registrar');
+  }
+
+  function openRegistrar() {
+    setPrefill(undefined);
+    setPrefillKey((k) => k + 1);
+    setView('registrar');
+  }
 
   return (
     <>
       <div className="wk-seg">
-        <button className={view === 'registrar' ? 'sel' : ''} onClick={() => setView('registrar')}>
+        <button className={view === 'programa' ? 'sel' : ''} onClick={() => setView('programa')}>
+          Programa
+        </button>
+        <button className={view === 'registrar' ? 'sel' : ''} onClick={openRegistrar}>
           Registrar
         </button>
         <button className={view === 'historico' ? 'sel' : ''} onClick={() => setView('historico')}>
@@ -500,7 +639,8 @@ export default function Workout() {
         </button>
       </div>
 
-      {view === 'registrar' && <RegisterView />}
+      {view === 'programa' && <ProgramaView onLog={logExercise} />}
+      {view === 'registrar' && <RegisterView startExercise={prefill} resetKey={prefillKey} />}
       {view === 'historico' && <HistoryView />}
       {view === 'evolucao' && <EvolutionView />}
 

@@ -9,8 +9,8 @@ import {
 } from 'react';
 import type { ExtraEntry, MealLog, Measurement, NutritionDoc } from './data/types';
 import { emptyDoc } from './data/sample';
-import type { WorkoutEntry } from './workout/types';
-import { parseWorkouts, type WkParseResult } from './workout/io';
+import type { WorkoutEntry, WorkoutPlan } from './workout/types';
+import { parseWorkouts, parseWorkoutPlan, type WkParseResult } from './workout/io';
 import { parseAndValidate, type ValidationResult } from './data/validator';
 import { todayKey, withExtra, withMealLog, withWater } from './data/nutrition';
 import {
@@ -60,6 +60,8 @@ interface StoreValue {
   replaceDoc: (doc: NutritionDoc) => void;
   /** Replace the workout log (lives inside the same doc → persists & syncs). */
   setWorkouts: (entries: WorkoutEntry[]) => void;
+  /** Replace the training program (ABC split). */
+  setWorkoutPlan: (plan: WorkoutPlan | undefined) => void;
   /** Single import: one JSON may carry the diet plan and/or the workout log. */
   importCombined: (text: string) => CombinedImport;
   updateSettings: (patch: Partial<Settings>) => Promise<void>;
@@ -224,6 +226,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     commit({ ...(doc ?? emptyDoc()), workouts: entries });
   }
 
+  function setWorkoutPlan(plan: WorkoutPlan | undefined) {
+    commit({ ...(doc ?? emptyDoc()), workoutPlan: plan });
+  }
+
   // One JSON may carry the diet (`plan`) and/or the workout log (`workouts`,
   // or a bare array of entries). Each present section is validated; nothing is
   // applied unless every present section is valid (atomic import).
@@ -242,11 +248,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         ? obj.workouts
         : null;
     const hasNutrition = !!obj && (isObj(obj.plan) || Array.isArray(obj.meals));
+    const routine = obj && isObj(obj.workoutPlan) ? parseWorkoutPlan(obj.workoutPlan) : null;
 
-    if (!hasNutrition && !wkArr) {
+    if (!hasNutrition && !wkArr && !routine) {
       return {
         ok: false,
-        error: 'Não reconheci dados de plano (refeições) nem de treino neste arquivo.',
+        error: 'Não reconheci dados de plano (refeições), treino ou programa neste arquivo.',
       };
     }
 
@@ -257,6 +264,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (hasNutrition && obj) {
       const rest: Record<string, unknown> = { ...obj };
       delete rest.workouts;
+      delete rest.workoutPlan;
       const { result, doc: parsed } = parseAndValidate(JSON.stringify(rest));
       nutrition = result;
       if (!result.valid || !parsed) return { ok: false, nutrition };
@@ -264,8 +272,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         parsed.logs.meals.length === 0 && parsed.logs.measurements.length === 0
           ? base.logs
           : parsed.logs;
-      // Preserve existing workouts unless the file brings its own.
-      nextDoc = { ...parsed, logs: keepLogs, workouts: base.workouts };
+      // Preserve existing workout data unless the file brings its own.
+      nextDoc = { ...parsed, logs: keepLogs, workouts: base.workouts, workoutPlan: base.workoutPlan };
     }
 
     let workouts: WkParseResult | undefined;
@@ -278,10 +286,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       };
     }
 
+    if (routine) nextDoc = { ...nextDoc, workoutPlan: routine };
+
     commit(nextDoc);
     const parts = [
       hasNutrition ? `plano (${nextDoc.plan.meals.length} refeições)` : '',
       wkArr ? `${workouts?.entries.length ?? 0} treinos` : '',
+      routine ? `programa (${routine.days.length} dias)` : '',
     ].filter(Boolean);
     setStatus(`Importado: ${parts.join(' + ')}.`);
     return { ok: true, nutrition, workouts };
@@ -408,6 +419,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     importText,
     replaceDoc,
     setWorkouts,
+    setWorkoutPlan,
     importCombined,
     updateSettings,
     driveConnect,

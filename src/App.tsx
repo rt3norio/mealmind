@@ -24,7 +24,7 @@ import {
 function Shell() {
   const { doc, status, signedIn, effectiveClientId, settings } = useStore();
   const hasFood = doc.plan.meals.length > 0;
-  const hasWorkouts = (doc.workouts?.length ?? 0) > 0;
+  const hasWorkouts = (doc.workouts?.length ?? 0) > 0 || (doc.workoutPlan?.days?.length ?? 0) > 0;
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
 

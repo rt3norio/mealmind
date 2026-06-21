@@ -2,7 +2,7 @@
 // track" flow, with friendly validation messages. Accepts a bare array of
 // entries or an object wrapping them under "workouts"/"entries".
 
-import type { WorkoutEntry, WorkoutSet, WorkoutUnit } from './types';
+import type { RoutineDay, WorkoutEntry, WorkoutPlan, WorkoutSet, WorkoutUnit } from './types';
 import { UNITS } from './helpers';
 
 export interface WkIssue {
@@ -144,6 +144,26 @@ export function parseWorkouts(text: string): WkParseResult {
     errors,
     warnings,
   };
+}
+
+/** Coerce a loose `workoutPlan` object into a WorkoutPlan, or null if it isn't one. */
+export function parseWorkoutPlan(raw: unknown): WorkoutPlan | null {
+  if (!isObject(raw) || !Array.isArray(raw.days)) return null;
+  const rawDays = raw.days as unknown[];
+  const days: RoutineDay[] = [];
+  rawDays.forEach((d, i) => {
+    if (!isObject(d)) return;
+    const exercises = Array.isArray(d.exercises)
+      ? d.exercises.filter((e): e is string => typeof e === 'string' && e.trim().length > 0).map((e) => e.trim())
+      : [];
+    days.push({
+      id: typeof d.id === 'string' && d.id ? d.id : crypto.randomUUID(),
+      label: String(d.label ?? String.fromCharCode(65 + i)),
+      name: String(d.name ?? ''),
+      exercises,
+    });
+  });
+  return { days };
 }
 
 export function serializeWorkouts(entries: WorkoutEntry[]): string {

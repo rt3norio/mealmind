@@ -25,3 +25,18 @@ export interface WorkoutEntry {
 
 export type Trend = 'up' | 'down' | 'flat' | 'new';
 export type Metric = 'load' | 'reps';
+
+/** A day of a training split (e.g. "A — Empurrar") and its exercises. */
+export interface RoutineDay {
+  id: string;
+  /** Short marker shown on the day, e.g. "A". */
+  label: string;
+  /** Day focus, e.g. "Empurrar". */
+  name: string;
+  exercises: string[];
+}
+
+/** The training program (the ABC split), distinct from the logged sessions. */
+export interface WorkoutPlan {
+  days: RoutineDay[];
+}
