@@ -9,6 +9,7 @@ import Data from './pages/Data';
 import Help from './pages/Help';
 import Settings from './pages/Settings';
 import Workout from './pages/Workout';
+import Onboarding from './pages/Onboarding';
 import {
   IconToday,
   IconPlan,
@@ -61,6 +62,7 @@ function Shell() {
       <main className="content">
         <Routes>
           <Route path="/" element={<Today />} />
+          <Route path="/inicio" element={<Onboarding />} />
           <Route path="/plano" element={<Plan />} />
           <Route path="/treino" element={<Workout />} />
           <Route path="/historico" element={<History />} />
@@ -92,11 +94,22 @@ function Landing({ hasFood, hasWorkouts }: { hasFood: boolean; hasWorkouts: bool
   const nav = useNavigate();
   const { pathname } = useLocation();
   useEffect(() => {
+    // Nothing imported yet → onboarding is home (utility pages stay reachable).
+    if (!hasFood && !hasWorkouts) {
+      const allowed = ['/inicio', '/dados', '/ajuda', '/config'];
+      if (!allowed.includes(pathname)) nav('/inicio', { replace: true });
+      return;
+    }
+    // Has data → don't linger on onboarding.
+    if (pathname === '/inicio') {
+      nav(hasFood ? '/' : '/treino', { replace: true });
+      return;
+    }
     const foodPaths = ['/', '/plano', '/historico', '/coach'];
     if (!hasFood && foodPaths.includes(pathname)) {
-      nav(hasWorkouts ? '/treino' : '/dados', { replace: true });
+      nav('/treino', { replace: true });
     } else if (!hasWorkouts && pathname === '/treino') {
-      nav(hasFood ? '/' : '/dados', { replace: true });
+      nav('/', { replace: true });
     }
   }, [hasFood, hasWorkouts, pathname, nav]);
   return null;

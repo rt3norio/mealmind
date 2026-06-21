@@ -553,3 +553,47 @@ ul.bul li { margin: 3px 0; }
 .wk-prog-go { font-size: 0.76rem; font-weight: 650; color: var(--brand); opacity: 0; transition: opacity 0.15s ease; flex: 0 0 auto; }
 .wk-prog-ex:active .wk-prog-go { opacity: 1; }
 @media (hover: hover) { .wk-prog-ex:hover .wk-prog-go { opacity: 1; } }
+
+/* Onboarding (estado vazio) ---------------------------------------------- */
+.onb { padding-top: 6px; }
+.onb-hero { text-align: center; padding: 24px 14px 14px; }
+.onb-mark {
+  width: 64px; height: 64px;
+  margin: 0 auto 16px;
+  display: grid; place-items: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 2rem;
+  color: #fff;
+  background: linear-gradient(160deg, var(--brand), var(--brand-deep));
+  border-radius: 20px;
+  box-shadow: var(--shadow-brand);
+}
+.onb-hero h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.7rem;
+  letter-spacing: -0.01em;
+  margin: 0 0 8px;
+}
+.onb-hero p { color: var(--muted); margin: 0 auto; max-width: 32ch; line-height: 1.5; font-size: 0.92rem; }
+.onb-steps { display: flex; flex-direction: column; gap: 20px; margin-top: 4px; }
+.onb-step { display: flex; gap: 14px; }
+.onb-num {
+  flex: 0 0 auto;
+  width: 28px; height: 28px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: var(--brand-soft);
+  color: var(--brand-deep);
+  font-weight: 800;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+.onb-step-body { flex: 1; min-width: 0; }
+.onb-step-body strong { font-size: 1rem; letter-spacing: -0.01em; }
+.onb-step-sub { font-size: 0.85rem; }
+.onb-step-body .onb-step-sub { margin: 3px 0 11px; }
+.onb-step-body button { width: 100%; }
+.onb-try { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.onb-try button { flex: 0 0 auto; }
